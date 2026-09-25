@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Catch &amp; Throw — File Transfer</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Catch &amp; Throw</h1>
+    <p class="tagline">Peer-to-peer file transfer between two devices. Buttons for now — gestures land next.</p>
+  </header>
+
+  <section class="panel" id="joinPanel">
+    <label for="roomCode">Room code</label>
+    <div class="row">
+      <input id="roomCode" type="text" placeholder="e.g. desk-42" autocomplete="off" />
+      <button id="joinBtn">Connect</button>
+    </div>
+    <p class="hint">Enter the same code on both devices, on the same network.</p>
+    <p class="status" id="status">Not connected</p>
+  </section>
+
+  <div class="grid">
+    <section class="panel" id="sendPanel">
+      <h2>Send</h2>
+      <input id="fileInput" type="file" />
+      <button id="sendBtn" disabled>Throw file →</button>
+      <div class="progress-wrap" id="sendProgressWrap" hidden>
+        <div class="progress-bar" id="sendProgressBar"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="receivePanel">
+      <h2>Receive</h2>
+      <div id="incomingCard" class="incoming-card" hidden>
+        <p id="incomingName"></p>
+        <button id="acceptBtn">← Catch it</button>
+      </div>
+      <div class="progress-wrap" id="recvProgressWrap" hidden>
+        <div class="progress-bar" id="recvProgressBar"></div>
+      </div>
+      <a id="downloadLink" hidden></a>
+      <p class="hint" id="receiveHint">Nothing incoming yet.</p>
+    </section>
+  </div>
+
+  <section class="panel" id="logPanel">
+    <h2>Log</h2>
+    <div id="log" class="log"></div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
