@@ -5,12 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Catch &amp; Throw — File Transfer</title>
 <link rel="stylesheet" href="style.css" />
+
+<!-- MediaPipe Hands Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <header>
     <h1>Catch &amp; Throw</h1>
-    <p class="tagline">Peer-to-peer file transfer between two devices. Buttons for now — gestures land next.</p>
+    <p class="tagline">Peer-to-peer file transfer. Use gestures or buttons.</p>
   </header>
+
+  <!-- NEW: Gesture Control Panel -->
+  <section class="panel" id="gesturePanel">
+    <h2>Gesture Control</h2>
+    <div class="video-container">
+      <video id="webcam" autoplay playsinline></video>
+      <canvas id="canvas"></canvas>
+    </div>
+    <p class="hint" id="gestureHint">Camera loading... Show an <strong>Open Hand</strong> to Throw (Send) or a <strong>Closed Fist</strong> to Catch (Receive).</p>
+  </section>
 
   <section class="panel" id="joinPanel">
     <label for="roomCode">Room code</label>

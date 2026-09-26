@@ -17,8 +17,8 @@ const receiveHint = document.getElementById('receiveHint');
 
 // ---- State ----
 let ws, pc, dataChannel;
-let selectedFile = null;   // file chosen via <input type="file">, will later be chosen via "catch" gesture
-let pendingSendFile = null; // file offered, waiting on peer's accept
+let selectedFile = null;
+let pendingSendFile = null;
 let incomingMeta = null;
 let incomingChunks = [];
 let incomingBytes = 0;
@@ -78,21 +78,17 @@ async function handleSignal(event) {
     case 'joined':
       if (msg.peerCount === 2) setStatus('Peer already here — connecting…');
       break;
-
     case 'room-full':
       alert('That room already has two devices connected. Try a different code.');
       break;
-
     case 'peer-joined':
       log('Peer joined — starting connection…');
       await createPeerConnection(true);
       break;
-
     case 'peer-left':
       setStatus('Peer disconnected');
       sendBtn.disabled = true;
       break;
-
     case 'offer':
       await createPeerConnection(false);
       await pc.setRemoteDescription(msg.sdp);
@@ -100,11 +96,9 @@ async function handleSignal(event) {
       await pc.setLocalDescription(answer);
       ws.send(JSON.stringify({ type: 'answer', sdp: answer }));
       break;
-
     case 'answer':
       await pc.setRemoteDescription(msg.sdp);
       break;
-
     case 'ice':
       if (msg.candidate) {
         try {
@@ -178,7 +172,6 @@ fileInput.addEventListener('change', () => {
   if (selectedFile) log(`Selected: ${selectedFile.name} (${formatBytes(selectedFile.size)})`);
 });
 
-// This click is the stand-in for the future "throw" gesture.
 sendBtn.addEventListener('click', () => offerFile(selectedFile));
 
 function offerFile(file) {
@@ -228,7 +221,6 @@ function onFileOffer(msg) {
   recvProgressWrap.hidden = true;
 }
 
-// This click is the stand-in for the future "catch" gesture.
 acceptBtn.addEventListener('click', () => {
   if (!dataChannel || dataChannel.readyState !== 'open') return;
   dataChannel.send(JSON.stringify({ type: 'accept' }));
@@ -249,3 +241,142 @@ function finalizeIncomingFile() {
   log(`Received: ${incomingMeta.name}`);
   incomingChunks = [];
 }
+
+
+// ==========================================
+// GESTURE RECOGNITION (MediaPipe Hands)
+// ==========================================
+const videoElement = document.getElementById('webcam');
+const canvasElement = document.getElementById('canvas');
+const canvasCtx = canvasElement.getContext('2d');
+const gestureHint = document.getElementById('gestureHint');
+
+let lastGesture = 'NEUTRAL';
+let gestureHoldFrames = 0;
+const HOLD_THRESHOLD = 15; // ~0.5 seconds at 30fps to confirm intent
+let cooldownActive = false;
+const COOLDOWN_MS = 2500; // 2.5s cooldown to prevent accidental double-triggers
+
+function detectGesture(landmarks) {
+  let extendedFingers = 0;
+  // Check if finger tips are above (lower Y value) their PIP joints
+  if (landmarks[8].y < landmarks[6].y) extendedFingers++;   // Index
+  if (landmarks[12].y < landmarks[10].y) extendedFingers++; // Middle
+  if (landmarks[16].y < landmarks[14].y) extendedFingers++; // Ring
+  if (landmarks[20].y < landmarks[18].y) extendedFingers++; // Pinky
+
+  if (extendedFingers >= 3) return 'THROWING'; // Open hand
+  if (extendedFingers <= 1) return 'CATCHING'; // Closed fist
+  return 'NEUTRAL';
+}
+
+function handleGesture(gesture) {
+  if (gesture === 'THROWING') {
+    gestureHint.innerHTML = 'Gesture: <strong style="color:var(--accent)">THROWING (Open Hand)</strong>';
+  } else if (gesture === 'CATCHING') {
+    gestureHint.innerHTML = 'Gesture: <strong style="color:var(--good)">CATCHING (Closed Fist)</strong>';
+  } else {
+    gestureHint.innerHTML = 'Gesture: <strong>NEUTRAL</strong> (Show Open Hand to Throw, Closed Fist to Catch)';
+  }
+
+  if (gesture === lastGesture) {
+    gestureHoldFrames++;
+  } else {
+    gestureHoldFrames = 0;
+    lastGesture = gesture;
+  }
+
+  if (gestureHoldFrames === HOLD_THRESHOLD && !cooldownActive) {
+    triggerGestureAction(gesture);
+  }
+}
+
+function triggerGestureAction(gesture) {
+  /* 
+   * NOTE: Mapped to match your UI text (Throw = Send, Catch = Receive). 
+   * If you meant the reverse per your first prompt, simply swap 'THROWING' and 'CATCHING' below!
+   */
+  
+  if (gesture === 'THROWING') {
+    if (!sendBtn.disabled) {
+      log('🖐️ Gesture detected: THROWING -> Triggering Send');
+      sendBtn.click(); // Safely triggers your existing logic
+      startGestureCooldown();
+    } else {
+      log('⚠️ Throw gesture ignored: No file selected or not connected.');
+      startGestureCooldown(); 
+    }
+  } 
+  else if (gesture === 'CATCHING') {
+    if (!incomingCard.hidden && !acceptBtn.hidden) {
+      log('✊ Gesture detected: CATCHING -> Triggering Accept');
+      acceptBtn.click(); // Safely triggers your existing logic
+      startGestureCooldown();
+    } else {
+      log('⚠️ Catch gesture ignored: No incoming file to accept.');
+      startGestureCooldown();
+    }
+  }
+}
+
+function startGestureCooldown() {
+  cooldownActive = true;
+  gestureHint.innerHTML += ' <span style="color:var(--muted)">(Cooldown...)</span>';
+  setTimeout(() => {
+    cooldownActive = false;
+    gestureHoldFrames = 0;
+    lastGesture = 'NEUTRAL';
+  }, COOLDOWN_MS);
+}
+
+// Initialize MediaPipe Hands
+const hands = new Hands({locateFile: (file) => {
+  return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+}});
+
+hands.setOptions({
+  maxNumHands: 1,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.5
+});
+
+hands.onResults((results) => {
+  canvasElement.width = videoElement.videoWidth || 640;
+  canvasElement.height = videoElement.videoHeight || 480;
+  
+  canvasCtx.save();
+  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  
+  if (results.multiHandLandmarks) {
+    for (const landmarks of results.multiHandLandmarks) {
+      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#4caf7d', lineWidth: 3});
+      drawLandmarks(canvasCtx, landmarks, {color: '#e8a33d', lineWidth: 1, radius: 4});
+      
+      const gesture = detectGesture(landmarks);
+      handleGesture(gesture);
+    }
+  } else {
+    if (lastGesture !== 'NEUTRAL') {
+      lastGesture = 'NEUTRAL';
+      gestureHoldFrames = 0;
+    }
+  }
+  canvasCtx.restore();
+});
+
+// Start Camera
+const camera = new Camera(videoElement, {
+  onFrame: async () => {
+    await hands.send({image: videoElement});
+  },
+  width: 640,
+  height: 480
+});
+
+camera.start().then(() => {
+  log('Camera started. Ready for gestures!');
+}).catch(err => {
+  log('Camera error: ' + err.message + '. Please allow camera access.');
+  gestureHint.textContent = 'Camera access denied or unavailable.';
+});

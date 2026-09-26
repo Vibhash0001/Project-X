@@ -157,3 +157,29 @@ button:not(:disabled):hover { filter: brightness(1.08); }
 }
 
 .log div:last-child { color: var(--text); }
+
+/* --- NEW: Gesture Video Styles --- */
+.video-container {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 4 / 3;
+  margin: 0 auto 1rem;
+  background: #0e1116;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.video-container video,
+.video-container canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1); /* Mirror for natural interaction */
+  object-fit: cover;
+}
+
+#gestureHint { text-align: center; }
