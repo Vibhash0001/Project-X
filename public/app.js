@@ -272,11 +272,11 @@ function detectGesture(landmarks) {
 
 function handleGesture(gesture) {
   if (gesture === 'THROWING') {
-    gestureHint.innerHTML = 'Gesture: <strong style="color:var(--accent)">THROWING (Open Hand)</strong>';
+    gestureHint.innerHTML = 'Gesture: <strong style="color:var(--accent)">THROWING / RELEASING (Open Hand)</strong>';
   } else if (gesture === 'CATCHING') {
-    gestureHint.innerHTML = 'Gesture: <strong style="color:var(--good)">CATCHING (Closed Fist)</strong>';
+    gestureHint.innerHTML = 'Gesture: <strong style="color:var(--good)">GRABBING (Closed Fist)</strong>';
   } else {
-    gestureHint.innerHTML = 'Gesture: <strong>NEUTRAL</strong> (Show Open Hand to Throw, Closed Fist to Catch)';
+    gestureHint.innerHTML = 'Gesture: <strong>NEUTRAL</strong> (Grab to Send, Throw to Receive)';
   }
 
   if (gesture === lastGesture) {
@@ -292,28 +292,25 @@ function handleGesture(gesture) {
 }
 
 function triggerGestureAction(gesture) {
-  /* 
-   * NOTE: Mapped to match your UI text (Throw = Send, Catch = Receive). 
-   * If you meant the reverse per your first prompt, simply swap 'THROWING' and 'CATCHING' below!
-   */
-  
-  if (gesture === 'THROWING') {
+  // ✊ GRABBING (Closed Fist) -> Send File
+  if (gesture === 'CATCHING') {
     if (!sendBtn.disabled) {
-      log('🖐️ Gesture detected: THROWING -> Triggering Send');
-      sendBtn.click(); // Safely triggers your existing logic
+      log('✊ Gesture detected: GRABBING (Closed Fist) -> Triggering Send');
+      sendBtn.click(); 
       startGestureCooldown();
     } else {
-      log('⚠️ Throw gesture ignored: No file selected or not connected.');
+      log('⚠️ Grab gesture ignored: No file selected or not connected.');
       startGestureCooldown(); 
     }
   } 
-  else if (gesture === 'CATCHING') {
+  // 🖐️ THROWING/RELEASING (Open Hand) -> Accept/Receive File
+  else if (gesture === 'THROWING') {
     if (!incomingCard.hidden && !acceptBtn.hidden) {
-      log('✊ Gesture detected: CATCHING -> Triggering Accept');
-      acceptBtn.click(); // Safely triggers your existing logic
+      log('🖐️ Gesture detected: THROWING (Open Hand) -> Triggering Accept');
+      acceptBtn.click(); 
       startGestureCooldown();
     } else {
-      log('⚠️ Catch gesture ignored: No incoming file to accept.');
+      log('⚠️ Throw gesture ignored: No incoming file to accept.');
       startGestureCooldown();
     }
   }
